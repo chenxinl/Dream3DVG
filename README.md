@@ -45,4 +45,5 @@ Thanks for the awesome repository:
 
 `LucidDreamer`: https://github.com/EnVision-Research/LucidDreamer
 
+`3Doodle`: https://github.com/changwoonchoi/3Doodle
 ## Citation
