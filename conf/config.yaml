@@ -1,0 +1,59 @@
+#-----------------#
+#  Global Config  #
+#-----------------#
+
+# optional args
+target: ~ # target file
+prompt: ~ # textual prompt
+image_prompt: ~ # for image based rendering 
+neg_prompt: "nsfw, lowres, (bad), text, error, fewer, extra, missing, worst quality, jpeg artifacts, low quality, watermark, unfinished, displeasing, oldest, early, chromatic aberration, signature, extra digits, artistic error, username, scan" # negative prompt
+
+# Accelerate config
+state:
+  cpu: False # use cpu
+  mprec: 'no' # mixed precision, choices: 'no', 'fp16', 'bf16'
+#  wandb: False
+#  tensorboard: False
+
+# Diffusers config
+diffuser:
+  download: True # Set this variable to True the first time it runs
+  force_download: False
+  resume_download: False
+
+# PyDiffVG config
+diffvg:
+  print_timing: False
+
+# reproduction
+seed: 1
+# multi-run
+multirun: False
+srange: ~ # seed range, example: [100, 100]
+
+# log
+result_path: './workspace'
+save_step: 50
+eval_step: 10
+
+# visual rendering process
+mv: True # make video
+framefreq: 5 # save the image interval
+framerate: 24 # by adjusting the frame rate, you can control the playback speed of the output video
+
+# hydra setting
+hydra:
+  help:
+    # app name, override to match the name your app is known by
+    app_name: 'SVGRender'
+  run:
+    # output directory for normal runs
+    # warning: make sure that the L56-58 of '/libs/engine/model_state.py' and 'dir' are modified together
+    # dir: ./${result_path}/${x.method}-${now:%Y-%m-%d-%H-%M}
+    dir: ./${result_path}/
+
+# default settings
+defaults:
+  - _self_
+  - x: ~
+  - override hydra/job_logging: disabled # Outputs only to stdout (no log file)

@@ -1,0 +1,188 @@
+method: 'dream3dvg'
+from_dataset: False
+use_gaussian: True
+use_pseudo: True
+perp_neg: True
+
+image_size: 512 # canvas size
+path_svg: ~ # if you want to load a svg file and train from it
+mask_object: False # if the target image contains background, it's better to mask it out
+fix_scale: False  # if the target image is not squared, it is recommended to fix the scale
+
+# train
+num_iter: 2000
+num_stages: 1 # training stages, you can train x strokes, then freeze them and train another x strokes etc
+lr_schedule: False
+lr_decay_rate: 0.1
+decay_steps: [ 1000, 1500 ]
+lr: 0.001
+color_lr: 0.01
+width_lr: 0.1
+color_vars_threshold: 0.0 # uncomment the code
+max_width: 50 # stroke width
+use_sfm: True
+batch: 10 # for camera sampling
+C_batch_size: 4
+desc_freq: 5
+eval_freq: 500
+
+# stroke attrs
+style: ~
+num_paths: 32 # number of strokes
+width: 1.5 # stroke width
+control_points_per_seg: 4
+num_segments: 4
+eps: 1.0e-8
+proj_mode: 'persp'
+proj_scale: 1.0
+blender: False
+optim_opacity: True # if True, the stroke opacity is optimized
+optim_width: False  # if True, the stroke width is optimized
+optim_rgba: False # if True, the stroke RGBA is optimized
+opacity_delta: 0 # stroke pruning
+use_viewnet: True
+
+# gs
+gaussian_param:
+  sh_degree: 0
+
+  percent_dense: 0.003
+  densify_from_iter: 100
+  densify_until_iter: 3000
+  densification_interval: 100
+  densify_grad_threshold: 0.00075 # 2e-4?
+  opacity_reset_interval: 300
+
+  position_lr_init: 0.00016
+  position_lr_final: 0.0000016
+  position_lr_delay_mult: 0.01
+  position_lr_max_steps: 30_000
+  feature_lr: 0.0050
+  feature_lr_final: 0.0030
+
+  scaling_lr_final: 0.001
+  rotation_lr_final: 0.0002
+
+  opacity_lr: 0.05
+  scaling_lr: 0.005
+  rotation_lr: 0.001
+
+  geo_iter: 0
+  as_latent_ratio: 0.2
+
+  white_background: True
+
+  sh_deg_aug_ratio: 0.1
+  bg_aug_ratio: 0.66
+  shs_aug_ratio: 0.0
+  scale_aug_ratio: 1.0
+
+  convert_SHs_python: False
+  compute_cov3D_python: False
+
+# camera_pose
+camera_param:
+  # init_shape: 'sphere'
+  init_shape: 'pointe'
+  init_prompt: ''
+  reinit_points: False
+  use_pointe_rgb: True
+  use_progressive: True
+  progressive_view_iter: 200
+  scale_up_cameras_iter: 500
+  scale_up_factor: 0.95
+  fovy_scale_up_factor: [0.75, 1.1]
+  phi_scale_up_factor: 1.1
+  radius_range: [5.2, 5.5] #[3.8, 4.5] #[3.0, 3.5]
+  max_radius_range: [3.5, 5.0]
+  default_radius: 3.5
+  theta_range: [45, 105]
+  max_theta_range: [45, 105]
+  phi_range: [-180, 180]
+  max_phi_range: [-180, 180]
+  fovy_range: [0.32, 0.60] # rad
+  max_fovy_range: [0.16, 0.60]
+  rand_cam_gamma: 1.0
+  angle_overhead: 30
+  angle_front: 60
+  render_45: True
+  uniform_sphere_rate: 0
+  image_w: 512
+  image_h: 512 # 512
+  SSAA: 1
+  init_num_pts: 100_000
+  
+  default_polar: 90
+  default_azimuth: 0
+  default_fovy: 0.55 #20
+  jitter_pose: True
+  jitter_center: 0.05
+  jitter_target: 0.05
+  jitter_up: 0.01
+  device: 'cuda'
+
+# ldm
+model_id: "sd21b"
+ldm_speed_up: False
+fp16: True
+enable_xformers: True
+gradient_checkpoint: False
+use_ddim: True
+num_inference_steps: 100
+
+# SDS loss
+sds:
+  # method: 'sds'
+  method: 'ism'
+  crop_size: 512
+  augmentations: "affine"
+  guidance_scale: 2.
+  gs_guidance_scale: 7.5
+  grad_scale: 1e-3
+  grad_scale_gs: 1.
+  t_range: [ 0.1, 0.9 ]
+  warmup: 10000
+  perp_neg: True
+
+  ism_param:
+    denoise_guidance_scale: 1.0
+
+    xs_delta_t: 200
+    xs_inv_steps: 5
+    xs_eta: 0.0
+    
+    delta_t: 50
+    delta_t_start: 100
+
+clip:
+  model_name: "RN101"  # RN101, ViT-L/14
+  feats_loss_type: "l2" # clip visual loss type, conv layers
+  feats_loss_weights: [ 0,0,1.0,1.0,0 ] # RN based
+  #  feats_loss_weights: [ 0,0,1.0,1.0,0,0,0,0,0,0,0,0 ] # ViT based
+  fc_loss_weight: 0.1 # clip visual loss, fc layer weight
+  augmentations: "affine" # augmentation before clip visual computation
+  num_aug: 4 # num of augmentation before clip visual computation
+  vis_loss: 1 # 1 or 0 for use or disable clip visual loss
+  text_visual_coeff: 0. # cosine similarity between text and img
+
+perceptual:
+  name: "lpips" # dists
+  lpips_net: 'vgg'
+  coeff: 0.2
+
+loss_params:
+    curve:
+      conv:
+        model_type: RN101
+        conv_loss_type: L2
+        fc_loss_type: Cos
+        num_augs: 4
+        affine: True
+        conv_weights: [0.0, 0.0, 1.0, 1.0, 0.0]
+        c_weight: 0.0
+        fc_weight: 1.0
+      joint:
+        loss_type: LPIPS
+        size: 224
+        weight: 0.01
+        robust: True
