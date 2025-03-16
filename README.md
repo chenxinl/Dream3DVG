@@ -33,7 +33,7 @@ sh train.sh
 or
 ```
 CUDA_VISIBLE_DEVICES='0' python svg_render.py x=dream3dvg seed=1 x.style='sketch' x.num_paths=32 "prompt='A benz car'" result_path='./workspace/3dvg/Benz' "x.camera_param.init_prompt='A benz car'"
-CUDA_VISIBLE_DEVICES='0' python svg_render.py x=dream3dvg seed=1 x.style='iconography' x.num_paths=128 "prompt='A carb'" result_path='./workspace/3dvg/Carb' "x.camera_param.init_prompt='A carb'"
+CUDA_VISIBLE_DEVICES='0' python svg_render.py x=dream3dvg seed=1 x.style='iconography' x.num_paths=128 "prompt='A crab'" result_path='./workspace/3dvg/Crab' "x.camera_param.init_prompt='A crab'"
 ```
 
 ## Acknowledgments
