@@ -11,7 +11,7 @@ python svg_render.py x=dream3dvg seed=1 x.style=$style x.num_paths=$num_paths "p
 style='iconography'
 num_paths=128
 
-python svg_render.py x=dream3dvg seed=1 x.style=$style x.num_paths=$num_paths "prompt='A carb'" result_path='./workspace/3dvg/Carb' "x.camera_param.init_prompt='A carb'"
 python svg_render.py x=dream3dvg seed=1 x.style=$style x.num_paths=$num_paths "prompt='A yellow school bus'" result_path='./workspace/3dvg/Bus' "x.camera_param.init_prompt='A yellow school bus'"
+python svg_render.py x=dream3dvg seed=2 x.style=$style x.num_paths=$num_paths "prompt='A crab'" result_path='./workspace/3dvg/Crab' "x.camera_param.init_prompt='A crab'"
 
 # set conf/config.yaml diffusers.download: True when first run

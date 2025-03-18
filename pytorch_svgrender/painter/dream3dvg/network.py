@@ -180,41 +180,6 @@ class CurveRenderer(nn.Module):
             print(
                 f"Initialized curves: [num_strokes] {self.num_strokes} | [use_point_clouds] {self.use_sfm}"
             )
-    
-    def init_properties_dataset(self, dataset):
-        """Reflect properties of given dataset"""
-        
-        # camera properties
-        self.H, self.W, _ = dataset.get_HWF
-        if self.proj_mode == "persp":  # perspective
-            self.intrinsic = dataset.get_intrinsic.to(self.device)
-        else:  # orthographic
-            self.intrinsic = (
-                torch.Tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
-                .float()
-                .to(self.device)
-            )
-
-        # get extracted points or randomize points to set initial strokes
-        if self.start_points is not None:
-            use_sfm = dataset.init_points and self.use_sfm
-            if use_sfm:
-                self.start_points, self.num_strokes = dataset.fps_from_sfm(
-                    self.num_strokes
-                )
-            else:
-                print("You are not using SfM points or the points are not available. Randomly initialize the starting points.")
-                randomized = [
-                    self.set_random_point(self.boundaries, device=self.device)
-                    + self.center
-                    for _ in range(self.num_strokes)
-                ]
-                self.start_points = torch.stack(randomized)
-            
-            # print final status of starting points
-            print(
-                f"Initialized curves: [num_strokes] {self.num_strokes} | [use_sfm] {use_sfm}"
-            )
             
     def fps_from_sfm(self, points, num_points: int, colors=None, init_alpha: float = 1.0) -> Tuple[Union[torch.Tensor, int]]:
         """FPS from points in sfm point cloud."""
@@ -425,54 +390,6 @@ class CurveRenderer(nn.Module):
             )
             
         self.strokes_counter += 1   
-        return points, path
-
-    def initialize_dataset(self, pose: torch.Tensor) -> torch.Tensor:
-        """Initialize strokes with the given view."""
-        # pose here c2w
-        self.num_control_pts = torch.zeros(self.num_segments, dtype=torch.int32) + 2
-        stroke_color = torch.Tensor([0.0, 0.0, 0.0, 1.0])
-
-        if len(self.point_params) == 0:
-            for pt0 in self.start_points:
-                pt, path = self.init_path_dataset(pose, pt0)
-                self.shapes[pt] = path
-                path_group = pydiffvg.ShapeGroup(
-                    shape_ids=torch.Tensor([len(self.shapes) - 1]),
-                    fill_color=None,
-                    stroke_color=stroke_color.clone(),
-                )
-                
-                self.shape_groups[pt] = path_group
-                # it means for each 3D point, with it's projected 2D path with pose, construct dict {shape} and {shape_groups} -> {3d points: 2d paths}
-            self.optimize_flag = [True for _ in range(len(self.shapes))]
-        else:
-            self.load_paths(pose, stroke_color)
-        
-        img = self.render_warp(pose, w2c=False)
-        img = img[:, :, 3:4] * img[:, :, :3] + torch.ones(
-            self.H, self.W, 3, device=self.device
-        ) * (1 - img[:, :, 3:4])
-        img = img[:, :, :3]
-        img = img.unsqueeze(0).permute(0, 3, 1, 2)  # [1, H, W, C] -> [1, C, H, W]
-        
-        return img
-
-    def init_path_dataset(
-        self, pose: torch.Tensor, pt: torch.Tensor
-    ) -> Tuple[torch.Tensor, pydiffvg.Path]:
-        """Set a path based on the starting point"""
-        
-        # get 3D control points
-        points = self.get_pts_3d(pt)
-        
-        path = pydiffvg.Path(
-            num_control_points=self.num_control_pts,
-            points=self.projection(points, pose),
-            stroke_width=torch.tensor(self.stroke_width, device=self.device),
-            is_closed=False,
-        )
-        # print(self.projection(points, pose, w2c=False))
         return points, path
 
 
