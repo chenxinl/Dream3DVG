@@ -59,7 +59,6 @@ class Painter:
         self.optim_kwargs = {
             "point_lr": self.args.lr,
             "color_lr": self.args.color_lr,
-            "width_lr": self.args.width_lr
         }
         self.optimizer: Optimizer = None
 

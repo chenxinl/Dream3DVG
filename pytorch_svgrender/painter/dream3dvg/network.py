@@ -255,7 +255,7 @@ class CurveRenderer(nn.Module):
         # if have 2 points, set them as start and end, and choose 2 mid points as control points
         # if only 1 point, set a small radius, and set 3 points together with pt0 as a bezier curve
         
-        if self.style in ['sketch', 'painting', 'ink']:
+        if self.style in ['sketch']:
             if len(pt0.shape) == 2:
                 start, end = pt0[0], pt0[1]
                 # mid_points = rand_on_circle(start, end, num_points=2)
@@ -368,7 +368,7 @@ class CurveRenderer(nn.Module):
     ) -> Tuple[torch.Tensor, pydiffvg.Path]:
         """Set a path based on the starting point"""
         
-        if self.style in ['sketch', 'painting', 'ink']:
+        if self.style in ['sketch']:
             
             # get 3D control points
             points = self.get_pts_3d(pt)
@@ -418,11 +418,6 @@ class CurveRenderer(nn.Module):
                 )
                 self.shape_groups[pt] = path_group
                 new_idx += 1
-                
-    def get_depth_alpha(self, depth, depth_range, min_depth) -> torch.Tensor:
-        alpha_values = 1 - (depth - min_depth) / depth_range  # closer curves are more opaque
-        alpha_values = torch.clamp(alpha_values, 0.1, 1.0)  # avoid complete transparency
-        return alpha_values
     
     def sample_depth_value(self, points_3d, pose, depth, intrinsic):
         points_2d = self.projection(points_3d, pose, True, intrinsic) # (num_paths, *, 2)
@@ -451,23 +446,6 @@ class CurveRenderer(nn.Module):
             curve_points.append(self.bezier_curve_3d(line, num_points))
         curve_points = torch.cat(curve_points, dim=0)
         return curve_points
-    
-    def batch_euclidean_distance(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        diff = x - y
-        squared_diff = torch.pow(diff, 2)
-        squared_sum = torch.sum(squared_diff, dim=-1)
-        distance = torch.sqrt(squared_sum)
-        return distance
-            
-    def reid_groups(self, shapes_2d=None, shape_groups=None):
-        """Sort strokes by the distance from the given camera location"""
-        assert len(shapes_2d) == len(shape_groups)
-        
-        for i in range(len(shapes_2d)):
-            new_id = torch.Tensor([i]).int()
-            shape_groups[i].shape_ids = new_id
-            
-        return shapes_2d, shape_groups
             
     def render_warp(self, 
                     pose: torch.Tensor, 
@@ -614,13 +592,15 @@ class CurveRenderer(nn.Module):
                 
                 # re-order
                 reordered_shapes_2d = []
+                reordered_shape_groups = []
                 for ind, render_order in enumerate(render_orders):
                     reordered_shapes_2d.append(shapes_2d[render_order.item()])
-                    shape_groups[render_order].shape_ids = torch.tensor(ind).unsqueeze(0).to(torch.int32).to(self.device)
+                    reordered_shape_groups.append(shape_groups[render_order])
+                    reordered_shape_groups[-1].shape_ids = torch.tensor(ind).unsqueeze(0).to(torch.int32).to(self.device)
                 
                 # render                      
                 scene_args = pydiffvg.RenderFunction.serialize_scene(
-                    self.W, self.H, reordered_shapes_2d, shape_groups
+                    self.W, self.H, reordered_shapes_2d, reordered_shape_groups
                 )      
                 
             else:                          
@@ -730,25 +710,7 @@ class CurveRenderer(nn.Module):
                         if self.optimize_flag[i]:
                             group.fill_color.requires_grad = True
                             self.color_params.append(group.fill_color)
-        elif self.style == 'ink':
-            if len(self.color_params) == 0:
-                self.color_params = []
-                for i, group in enumerate(self.shape_groups.values()):
-                    if self.optimize_flag[i]:
-                        group.stroke_color[-1].requires_grad = True
-                        self.color_params.append(group.stroke_color)
         return self.color_params
-    
-    def set_width_params(self) -> List[torch.Tensor]:
-        if self.style in ['painting', 'ink']:
-            if len(self.width_params) == 0:
-                self.width_params = []
-                for i, shape in enumerate(self.shapes.values()):
-                    if self.optimize_flag[i]:
-                        shape.stroke_width.requires_grad = True
-                        self.width_params.append(shape.stroke_width)
-        
-        return self.width_params
 
     def set_random_noise(self, save: bool = False):
         self.add_noise = False if save else self.add_noise_init
@@ -756,14 +718,12 @@ class CurveRenderer(nn.Module):
     def load_state_dict(self, ckpt: Dict[str, Any]):
         self.point_params = ckpt["point_params"]
         self.color_params = ckpt["color_params"]
-        self.width_params = ckpt["width_params"]
         self.optimize_flag = ckpt["optimize_flag"]
 
     def state_dict(self) -> Dict[str, List[Any]]:
         states = {
             "point_params": self.point_params,
             "color_params": self.color_params,
-            "width_params": self.width_params,
             "optimize_flag": self.optimize_flag,
         }
 
@@ -862,7 +822,6 @@ class CurveOptimizer:
         module: CurveRenderer,
         point_lr: float = 1.0,
         color_lr: float = 0.01,
-        width_lr: float = 0.01
     ):
         """Optimizer used in CLIPasso.
         mainly referred to https://github.com/yael-vinker/CLIPasso/blob/main/models/painter_params.py
@@ -873,10 +832,8 @@ class CurveOptimizer:
         # variables related to an optimizer
         self.point_lr = point_lr
         self.color_lr = color_lr
-        self.width_lr = width_lr
         self.optim_point = module.optim_point
         self.optim_color = module.optim_color
-        self.optim_width = module.optim_width
         print(f"Optimize colors: {self.optim_color}")
 
     def initialize(self):
@@ -884,10 +841,6 @@ class CurveOptimizer:
             self.point_optim = optim.Adam(self.module.set_point_params(), lr=self.point_lr)
         if self.optim_color:
             self.color_optim = optim.Adam(self.module.set_color_params(), lr=self.color_lr)
-            
-        if self.module.optim_width:
-            self.width_optim = optim.Adam(self.module.set_width_params(), lr=self.width_lr)
-            
         if self.module.use_viewnet:
             self.alpha_optim = optim.Adam(self.module.alpha_net.parameters(), lr=self.color_lr)
 
@@ -896,8 +849,6 @@ class CurveOptimizer:
             self.point_optim.zero_grad()
         if self.optim_color:
             self.color_optim.zero_grad()
-        if self.optim_width:
-            self.width_optim.zero_grad()
         if self.module.use_viewnet:
             self.alpha_optim.zero_grad()
         
@@ -905,10 +856,7 @@ class CurveOptimizer:
         if self.optim_point:
             self.point_optim.step()
         if self.optim_color:
-            self.color_optim.step()
-        if self.optim_width:
-            self.width_optim.step()
-            
+            self.color_optim.step()    
         if self.module.use_viewnet:
             self.alpha_optim.step()
 
@@ -918,8 +866,6 @@ class CurveOptimizer:
             params["point"] = self.point_optim.state_dict()
         if self.optim_color:
             params["color"] = self.color_optim.state_dict()
-        if self.optim_width:
-            params["width"] = self.width_optim.state_dict()
         if self.module.use_viewnet:
             params["alpha"] = self.alpha_optim.state_dict()
             

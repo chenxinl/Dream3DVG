@@ -100,7 +100,6 @@ class Optimizer:
         curve: CurveRenderer,
         point_lr: float = 1.0,
         color_lr: float = 0.1,
-        width_lr: float = 0.1
     ):
         """Main class of the optimizer"""
 
@@ -110,7 +109,6 @@ class Optimizer:
             module=curve,
             point_lr=point_lr,
             color_lr=color_lr,
-            width_lr=width_lr
         )
 
     def get_scheduler(self, steps: int, min_lr: float):

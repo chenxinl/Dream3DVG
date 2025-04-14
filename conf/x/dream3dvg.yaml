@@ -17,7 +17,6 @@ lr_decay_rate: 0.1
 decay_steps: [ 1000, 1500 ]
 lr: 0.001
 color_lr: 0.001
-width_lr: 0.1
 color_vars_threshold: 0.0 # uncomment the code
 max_width: 50 # stroke width
 use_sfm: True
