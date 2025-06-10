@@ -1,4 +1,4 @@
-#  Implementation of "Empowering Vector Graphics with Consistently Arbitrary Viewing and View-dependent Visibility"
+#  Implementation of "Empowering Vector Graphics with Consistently Arbitrary Viewing and View-dependent Visibility". CVPR 2025, Highlight
 
 ![](/assets/video.gif)
 
@@ -47,3 +47,14 @@ Thanks for the awesome repository:
 
 `3Doodle`: https://github.com/changwoonchoi/3Doodle
 ## Citation
+Cite as below if you find this paper and repository are helpful to you:
+```
+@InProceedings{Li_2025_CVPR,
+    author    = {Li, Yidi and Xiao, Jun and Lu, Zhengda and Wang, Yiqun and Jiang, Haiyong},
+    title     = {Empowering Vector Graphics with Consistently Arbitrary Viewing and View-dependent Visibility},
+    booktitle = {Proceedings of the Computer Vision and Pattern Recognition Conference (CVPR)},
+    month     = {June},
+    year      = {2025},
+    pages     = {18531-18540}
+}
+```
