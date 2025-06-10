@@ -147,26 +147,4 @@ class Painter:
         curve_points = torch.cat(curve_points, dim=0)
         return curve_points
     
-    def prepare_dataset(
-        self, dataset, train: bool = True
-    ) -> torch.Tensor:
-        """Prepare to optimize with the given dataset"""
-        
-        self.renderer.init_properties_dataset(dataset['train'])
-        if self.optimizer is None:
-            self.optimizer = self.renderer.get_optimizer(**self.optim_kwargs)
-
-        self.renderer.set_random_noise(save=True)
-        
-        if train:
-            self.optimizer.set_grads()
-
-        if not self.loaded:
-            init_pose = dataset['train'].poses[0].to(self.device)
-            init = self.initialize(init_pose)
-        else:
-            init = None
-        
-        return init
-    
     

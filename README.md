@@ -1,6 +1,6 @@
 #  Implementation of "Empowering Vector Graphics with Consistently Arbitrary Viewing and View-dependent Visibility"
 
-![](/assets/teaster.png)
+![](/assets/video.gif)
 
 ## Setup
 ```
